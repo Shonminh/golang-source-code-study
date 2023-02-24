@@ -121,7 +121,7 @@ func reflect_memmove(to, from unsafe.Pointer, n uintptr) {
 const hashLoad = float32(loadFactorNum) / float32(loadFactorDen)
 
 //go:nosplit
-func fastrand() uint32 {
+func fastrand() uint32 { // 随机种子
 	mp := getg().m
 	// Implement wyrand: https://github.com/wangyi-fudan/wyhash
 	// Only the platform that math.Mul64 can be lowered
