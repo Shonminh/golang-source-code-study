@@ -192,6 +192,7 @@ func bucketMask(b uint8) uintptr {
 }
 
 // tophash calculates the tophash value for hash.
+// 64位机子上面就是8位。
 func tophash(hash uintptr) uint8 {
 	top := uint8(hash >> (goarch.PtrSize*8 - 8))
 	if top < minTopHash {
@@ -427,9 +428,9 @@ func mapaccess1(t *maptype, h *hmap, key unsafe.Pointer) unsafe.Pointer {
 			b = oldb
 		}
 	}
-	top := tophash(hash)
+	top := tophash(hash) // 获取高8位hash
 bucketloop:
-	for ; b != nil; b = b.overflow(t) {
+	for ; b != nil; b = b.overflow(t) { // 如果没有找到的话，则尝试从overflow挂的桶中寻找。
 		for i := uintptr(0); i < bucketCnt; i++ {
 			if b.tophash[i] != top {
 				if b.tophash[i] == emptyRest {
@@ -437,11 +438,14 @@ bucketloop:
 				}
 				continue
 			}
-			k := add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+			// 如果找到key了，则定位到key的位置
+			k := add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize)) // dataOffset + 第i个 * key的size 就是当前的k的地址
 			if t.indirectkey() {
 				k = *((*unsafe.Pointer)(k))
 			}
 			if t.key.equal(key, k) {
+				// 如果相等，说明找到了，定位到value的位置。
+				// dataOffset + 8 X key的size + 第i个 X 值的size就是当前要找的value的地址。
 				e := add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.elemsize))
 				if t.indirectelem() {
 					e = *((*unsafe.Pointer)(e))
@@ -450,6 +454,7 @@ bucketloop:
 			}
 		}
 	}
+	// 没有找到的情况下，返回0值。
 	return unsafe.Pointer(&zeroVal[0])
 }
 
