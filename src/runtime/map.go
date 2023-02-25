@@ -418,13 +418,13 @@ func mapaccess1(t *maptype, h *hmap, key unsafe.Pointer) unsafe.Pointer {
 	hash := t.hasher(key, uintptr(h.hash0))
 	m := bucketMask(h.B)
 	b := (*bmap)(add(h.buckets, (hash&m)*uintptr(t.bucketsize)))
-	if c := h.oldbuckets; c != nil {
-		if !h.sameSizeGrow() {
+	if c := h.oldbuckets; c != nil { // 如果老的桶不为空，说明发生了扩容
+		if !h.sameSizeGrow() { // 判断是不是同size的扩容
 			// There used to be half as many buckets; mask down one more power of two.
 			m >>= 1
 		}
 		oldb := (*bmap)(add(c, (hash&m)*uintptr(t.bucketsize)))
-		if !evacuated(oldb) {
+		if !evacuated(oldb) { // 如果没有搬迁到新的桶中的话，则用在定位到老的桶中
 			b = oldb
 		}
 	}
@@ -458,6 +458,7 @@ bucketloop:
 	return unsafe.Pointer(&zeroVal[0])
 }
 
+// 这种就是我们一般获取的时候用的age2, ok := ageMap["stefno"] 这种方式的实现，和mapaccess1上面的代码长的很类似啊，为什么不优化？
 func mapaccess2(t *maptype, h *hmap, key unsafe.Pointer) (unsafe.Pointer, bool) {
 	if raceenabled && h != nil {
 		callerpc := getcallerpc()
