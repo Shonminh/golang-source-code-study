@@ -431,7 +431,7 @@ func mapaccess1(t *maptype, h *hmap, key unsafe.Pointer) unsafe.Pointer {
 	top := tophash(hash) // 获取高8位hash
 bucketloop:
 	for ; b != nil; b = b.overflow(t) { // 如果没有找到的话，则尝试从overflow挂的桶中寻找。
-		for i := uintptr(0); i < bucketCnt; i++ {
+		for i := uintptr(0); i < bucketCnt; i++ { // 遍历8个key的槽位，寻找key
 			if b.tophash[i] != top {
 				if b.tophash[i] == emptyRest {
 					break bucketloop
