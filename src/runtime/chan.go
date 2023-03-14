@@ -213,7 +213,7 @@ func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
 		return true
 	}
 
-	if c.qcount < c.dataqsiz {
+	if c.qcount < c.dataqsiz { // 说明当前的数据小于循环队列的size，没有满，可以往队列里面写数据。
 		// Space is available in the channel buffer. Enqueue the element to send.
 		qp := chanbuf(c, c.sendx)
 		if raceenabled {

@@ -92,10 +92,10 @@ const (
 	// during map writes and thus no one else can observe the map during that time).
 	emptyRest      = 0 // this cell is empty, and there are no more non-empty cells at higher indexes or overflows.
 	emptyOne       = 1 // this cell is empty
-	evacuatedX     = 2 // key/elem is valid.  Entry has been evacuated to first half of larger table.
-	evacuatedY     = 3 // same as above, but evacuated to second half of larger table.
-	evacuatedEmpty = 4 // cell is empty, bucket is evacuated.
-	minTopHash     = 5 // minimum tophash for a normal filled cell.
+	evacuatedX     = 2 // key/elem is valid.  Entry has been evacuated to first half of larger table. 已经全部搬迁完毕，但是key都在新的桶的前半部分
+	evacuatedY     = 3 // same as above, but evacuated to second half of larger table. 已经全部搬迁完毕，但是key都在新的桶的后半部分
+	evacuatedEmpty = 4 // cell is empty, bucket is evacuated. 已经搬迁到新的桶中、
+	minTopHash     = 5 // minimum tophash for a normal filled cell. tophash最小的正常值。
 
 	// flags
 	iterator     = 1 // there may be an iterator using buckets
