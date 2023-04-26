@@ -66,7 +66,7 @@ func (rw *RWMutex) RLock() {
 		_ = rw.w.state
 		race.Disable()
 	}
-	if rw.readerCount.Add(1) < 0 {
+	if rw.readerCount.Add(1) < 0 { // 等待唤醒
 		// A writer is pending, wait for it.
 		runtime_SemacquireRWMutexR(&rw.readerSem, false, 0)
 	}
@@ -114,7 +114,7 @@ func (rw *RWMutex) RUnlock() {
 		race.ReleaseMerge(unsafe.Pointer(&rw.writerSem))
 		race.Disable()
 	}
-	if r := rw.readerCount.Add(-1); r < 0 {
+	if r := rw.readerCount.Add(-1); r < 0 { // 说明有协程
 		// Outlined slow-path to allow the fast-path to be inlined
 		rw.rUnlockSlow(r)
 	}
@@ -124,12 +124,12 @@ func (rw *RWMutex) RUnlock() {
 }
 
 func (rw *RWMutex) rUnlockSlow(r int32) {
-	if r+1 == 0 || r+1 == -rwmutexMaxReaders {
+	if r+1 == 0 || r+1 == -rwmutexMaxReaders { // -1或者rwmutexMaxReaders说明本身没有加读锁。
 		race.Enable()
 		fatal("sync: RUnlock of unlocked RWMutex")
 	}
 	// A writer is pending.
-	if rw.readerWait.Add(-1) == 0 {
+	if rw.readerWait.Add(-1) == 0 { // 当前协程是最后的获取读锁的协程。尝试去唤醒写锁对应的协程。
 		// The last reader unblocks the writer.
 		runtime_Semrelease(&rw.writerSem, false, 1)
 	}
@@ -146,7 +146,7 @@ func (rw *RWMutex) Lock() {
 	// First, resolve competition with other writers.
 	rw.w.Lock()
 	// Announce to readers there is a pending writer.
-	r := rw.readerCount.Add(-rwmutexMaxReaders) + rwmutexMaxReaders
+	r := rw.readerCount.Add(-rwmutexMaxReaders) + rwmutexMaxReaders // 大于0
 	// Wait for active readers.
 	if r != 0 && rw.readerWait.Add(r) != 0 {
 		runtime_SemacquireRWMutex(&rw.writerSem, false, 0)
@@ -203,8 +203,8 @@ func (rw *RWMutex) Unlock() {
 	}
 
 	// Announce to readers there is no active writer.
-	r := rw.readerCount.Add(rwmutexMaxReaders)
-	if r >= rwmutexMaxReaders {
+	r := rw.readerCount.Add(rwmutexMaxReaders) // -100000 + 123 + 100000
+	if r >= rwmutexMaxReaders {                // 这种情况说明是没有执行写锁的Lock()函数，才会导致r的值大于最大readers
 		race.Enable()
 		fatal("sync: Unlock of unlocked RWMutex")
 	}

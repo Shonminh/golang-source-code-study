@@ -128,12 +128,12 @@ func (m *Mutex) lockSlow() {
 			// Try to set mutexWoken flag to inform Unlock
 			// to not wake other blocked goroutines.
 			if !awoke && old&mutexWoken == 0 && old>>mutexWaiterShift != 0 &&
-				atomic.CompareAndSwapInt32(&m.state, old, old|mutexWoken) {
+				atomic.CompareAndSwapInt32(&m.state, old, old|mutexWoken) { // 这里是尝试把woken的再刷到state上面。
 				awoke = true
 			}
 			runtime_doSpin()
 			iter++
-			old = m.state
+			old = m.state // 重新赋值了。
 			continue
 		}
 		new := old

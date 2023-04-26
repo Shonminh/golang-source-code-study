@@ -39,8 +39,8 @@ import (
 // BenchmarkSemTable/OneAddrCollision/* for a benchmark that exercises this.
 type semaRoot struct {
 	lock  mutex
-	treap *sudog        // root of balanced tree of unique waiters.
-	nwait atomic.Uint32 // Number of waiters. Read w/o the lock.
+	treap *sudog        // root of balanced tree of unique waiters. // 等待队列是平衡树实现的，根节点？
+	nwait atomic.Uint32 // Number of waiters. Read w/o the lock. 等待队列的数量
 }
 
 var semtable semTable
@@ -48,6 +48,7 @@ var semtable semTable
 // Prime to not correlate with any user patterns.
 const semTabSize = 251
 
+// semTable信号量表，
 type semTable [semTabSize]struct {
 	root semaRoot
 	pad  [cpu.CacheLinePadSize - unsafe.Sizeof(semaRoot{})]byte
@@ -118,7 +119,7 @@ func semacquire1(addr *uint32, lifo bool, profile semaProfileFlags, skipframes i
 	}
 
 	// Easy case.
-	if cansemacquire(addr) {
+	if cansemacquire(addr) { // 直接针对信号量进行了减一操作，如果操作成功，说明不需要等待。
 		return
 	}
 
