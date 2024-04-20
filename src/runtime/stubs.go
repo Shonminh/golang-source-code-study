@@ -6,8 +6,6 @@ package runtime
 
 import (
 	"internal/abi"
-	"internal/goarch"
-	"runtime/internal/math"
 	"unsafe"
 )
 
@@ -120,6 +118,7 @@ func reflect_memmove(to, from unsafe.Pointer, n uintptr) {
 // exported value for testing
 const hashLoad = float32(loadFactorNum) / float32(loadFactorDen)
 
+<<<<<<< HEAD
 //go:nosplit
 func fastrand() uint32 { // 随机种子
 	mp := getg().m
@@ -205,6 +204,8 @@ func net_fastrandu() uint { return fastrandu() }
 //go:linkname os_fastrand os.fastrand
 func os_fastrand() uint32 { return fastrand() }
 
+=======
+>>>>>>> go1.22.2
 // in internal/bytealg/equal_*.s
 //
 //go:noescape
@@ -222,12 +223,24 @@ func noescape(p unsafe.Pointer) unsafe.Pointer {
 	return unsafe.Pointer(x ^ 0)
 }
 
+// noEscapePtr hides a pointer from escape analysis. See noescape.
+// USE CAREFULLY!
+//
+//go:nosplit
+func noEscapePtr[T any](p *T) *T {
+	x := uintptr(unsafe.Pointer(p))
+	return (*T)(unsafe.Pointer(x ^ 0))
+}
+
 // Not all cgocallback frames are actually cgocallback,
 // so not all have these arguments. Mark them uintptr so that the GC
 // does not misinterpret memory when the arguments are not present.
 // cgocallback is not called from Go, only from crosscall2.
 // This in turn calls cgocallbackg, which is where we'll find
 // pointer-declared arguments.
+//
+// When fn is nil (frame is saved g), call dropm instead,
+// this is used when the C thread is exiting.
 func cgocallback(fn, frame, ctxt uintptr)
 
 func gogo(buf *gobuf)
@@ -359,6 +372,11 @@ func getcallersp() uintptr // implemented as an intrinsic on all platforms
 //
 // The compiler rewrites calls to this function into instructions that fetch the
 // pointer from a well-known register (DX on x86 architecture, etc.) directly.
+//
+// WARNING: PGO-based devirtualization cannot detect that caller of
+// getclosureptr require closure context, and thus must maintain a list of
+// these functions, which is in
+// cmd/compile/internal/devirtualize/pgo.maybeDevirtualizeFunctionCall.
 func getclosureptr() uintptr
 
 //go:noescape
@@ -409,11 +427,15 @@ func call1073741824(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOf
 func systemstack_switch()
 
 // alignUp rounds n up to a multiple of a. a must be a power of 2.
+//
+//go:nosplit
 func alignUp(n, a uintptr) uintptr {
 	return (n + a - 1) &^ (a - 1)
 }
 
 // alignDown rounds n down to a multiple of a. a must be a power of 2.
+//
+//go:nosplit
 func alignDown(n, a uintptr) uintptr {
 	return n &^ (a - 1)
 }
@@ -434,7 +456,7 @@ func memequal_varlen(a, b unsafe.Pointer) bool
 func bool2int(x bool) int {
 	// Avoid branches. In the SSA compiler, this compiles to
 	// exactly what you would want it to.
-	return int(uint8(*(*uint8)(unsafe.Pointer(&x))))
+	return int(*(*uint8)(unsafe.Pointer(&x)))
 }
 
 // abort crashes the runtime in situations where even throw might not
@@ -445,7 +467,14 @@ func bool2int(x bool) int {
 func abort()
 
 // Called from compiled code; declared for vet; do NOT call from Go.
-func gcWriteBarrier()
+func gcWriteBarrier1()
+func gcWriteBarrier2()
+func gcWriteBarrier3()
+func gcWriteBarrier4()
+func gcWriteBarrier5()
+func gcWriteBarrier6()
+func gcWriteBarrier7()
+func gcWriteBarrier8()
 func duffzero()
 func duffcopy()
 

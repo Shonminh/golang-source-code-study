@@ -8,12 +8,9 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"log"
 	"os"
 	"os/exec"
-	"strings"
-	"testing"
 	"text/template"
 
 	"cmd/go/internal/test/internal/genflags"
@@ -33,7 +30,7 @@ func regenerate() error {
 
 	t := template.Must(template.New("fileTemplate").Parse(fileTemplate))
 	tData := map[string][]string{
-		"testFlags":    testFlags(),
+		"testFlags":    genflags.ShortTestFlags(),
 		"vetAnalyzers": vetAnalyzers,
 	}
 	buf := bytes.NewBuffer(nil)
@@ -63,6 +60,7 @@ func regenerate() error {
 	return nil
 }
 
+<<<<<<< HEAD
 func testFlags() []string {
 	testing.Init()
 
@@ -85,6 +83,8 @@ func testFlags() []string {
 	return names
 }
 
+=======
+>>>>>>> go1.22.2
 const fileTemplate = `// Copyright 2019 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.

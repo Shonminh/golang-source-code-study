@@ -11,4 +11,8 @@ import (
 // readMIMEHeader is defined in package net/textproto.
 //
 //go:linkname readMIMEHeader net/textproto.readMIMEHeader
+<<<<<<< HEAD
 func readMIMEHeader(r *textproto.Reader, lim int64) (textproto.MIMEHeader, error)
+=======
+func readMIMEHeader(r *textproto.Reader, maxMemory, maxHeaders int64) (textproto.MIMEHeader, error)
+>>>>>>> go1.22.2

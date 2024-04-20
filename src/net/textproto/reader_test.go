@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -32,6 +33,18 @@ func TestReadLine(t *testing.T) {
 	s, err = r.ReadLine()
 	if s != "" || err != io.EOF {
 		t.Fatalf("EOF: %s, %v", s, err)
+	}
+}
+
+func TestReadLineLongLine(t *testing.T) {
+	line := strings.Repeat("12345", 10000)
+	r := reader(line + "\r\n")
+	s, err := r.ReadLine()
+	if err != nil {
+		t.Fatalf("Line 1: %v", err)
+	}
+	if s != line {
+		t.Fatalf("%v-byte line does not match expected %v-byte line", len(s), len(line))
 	}
 }
 
@@ -126,6 +139,42 @@ func TestReadMIMEHeaderSingle(t *testing.T) {
 	want := MIMEHeader{"Foo": {"bar"}}
 	if !reflect.DeepEqual(m, want) || err != nil {
 		t.Fatalf("ReadMIMEHeader: %v, %v; want %v", m, err, want)
+	}
+}
+
+// TestReaderUpcomingHeaderKeys is testing an internal function, but it's very
+// difficult to test well via the external API.
+func TestReaderUpcomingHeaderKeys(t *testing.T) {
+	for _, test := range []struct {
+		input string
+		want  int
+	}{{
+		input: "",
+		want:  0,
+	}, {
+		input: "A: v",
+		want:  1,
+	}, {
+		input: "A: v\r\nB: v\r\n",
+		want:  2,
+	}, {
+		input: "A: v\nB: v\n",
+		want:  2,
+	}, {
+		input: "A: v\r\n  continued\r\n  still continued\r\nB: v\r\n\r\n",
+		want:  2,
+	}, {
+		input: "A: v\r\n\r\nB: v\r\nC: v\r\n",
+		want:  1,
+	}, {
+		input: "A: v" + strings.Repeat("\n", 1000),
+		want:  1,
+	}} {
+		r := reader(test.input)
+		got := r.upcomingHeaderKeys()
+		if test.want != got {
+			t.Fatalf("upcomingHeaderKeys(%q): %v; want %v", test.input, got, test.want)
+		}
 	}
 }
 
@@ -268,6 +317,28 @@ func TestReadMIMEHeaderTrimContinued(t *testing.T) {
 	}
 	if !reflect.DeepEqual(m, want) {
 		t.Fatalf("ReadMIMEHeader mismatch.\n got: %q\nwant: %q", m, want)
+	}
+}
+
+// Test that reading a header doesn't overallocate. Issue 58975.
+func TestReadMIMEHeaderAllocations(t *testing.T) {
+	var totalAlloc uint64
+	const count = 200
+	for i := 0; i < count; i++ {
+		r := reader("A: b\r\n\r\n" + strings.Repeat("\n", 4096))
+		var m1, m2 runtime.MemStats
+		runtime.ReadMemStats(&m1)
+		_, err := r.ReadMIMEHeader()
+		if err != nil {
+			t.Fatalf("ReadMIMEHeader: %v", err)
+		}
+		runtime.ReadMemStats(&m2)
+		totalAlloc += m2.TotalAlloc - m1.TotalAlloc
+	}
+	// 32k is large and we actually allocate substantially less,
+	// but prior to the fix for #58975 we allocated ~400k in this case.
+	if got, want := totalAlloc/count, uint64(32768); got > want {
+		t.Fatalf("ReadMIMEHeader allocated %v bytes, want < %v", got, want)
 	}
 }
 
