@@ -330,6 +330,7 @@ func propagateCancel(parent Context, child canceler) {
 	} else {
 		goroutines.Add(1)
 		go func() {
+			// 这里开协程会一直等待父节点或者当前节点取消
 			select {
 			case <-parent.Done():
 				child.cancel(false, parent.Err(), Cause(parent))
@@ -466,8 +467,10 @@ func (c *cancelCtx) cancel(removeFromParent bool, err, cause error) {
 	c.cause = cause
 	d, _ := c.done.Load().(chan struct{})
 	if d == nil {
+		// closedchan 在启动时就被关闭了。（init函数）
 		c.done.Store(closedchan)
 	} else {
+		// 这里是做关闭的操作。
 		close(d)
 	}
 	for child := range c.children {

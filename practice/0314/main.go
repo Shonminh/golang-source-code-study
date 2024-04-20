@@ -28,7 +28,7 @@ func main1() {
 }
 
 // 交替打印
-func main2() {
+func main() {
 	a := []string{"1", "2", "3", "4", "5", "6"}
 	b := []string{"A", "B", "C", "D", "E", "F"}
 	wg := sync.WaitGroup{}
@@ -92,7 +92,7 @@ type Duck interface {
 	Quack()
 }
 
-func main() {
+func main3() {
 	var d Duck = &Cat{}
 	d.Quack()
 	d.Quack()
